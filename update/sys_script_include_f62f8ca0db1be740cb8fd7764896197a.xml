@@ -11,6 +11,24 @@ AbsoluteAPI.prototype = {
 	initialize: function(apiToken, apiSecret) {
 		this.apiToken = apiToken;
 		this.apiSecret = apiSecret;
+		this.region = gs.getProperty('x_absr_itsm.Region');
+		
+		if(this.region === 'USDC') {
+			this.dataCenter = 'us.';
+			this.endpoint = "api.us.absolute.com";
+			this.regionstring = "/usdc/abs1";
+		}
+		else if(this.region === 'EUDC') {
+			this.dataCenter = 'eu.';
+			this.endpoint = "api.eu.absolute.com";
+			this.regionstring = "/eudc/abs1";
+		}
+		else {
+			this.dataCenter = '';
+			this.endpoint = "api.absolute.com";
+			this.regionstring = "/cadc/abs1";
+		}
+		
 		this.log = new global.GSLog("x_absr_itsm.logging.verbosity", "AbsoluteAPI");
 	},
 	fetchAbsoluteUid : function (serialNumber){
@@ -30,6 +48,7 @@ AbsoluteAPI.prototype = {
 			r.setStringParameterNoEscape('abtDateTime', abtDT);
 			r.setStringParameterNoEscape('abtAuthHeader', authH);
 			r.setStringParameterNoEscape('serial', serialNumber);
+			r.setStringParameterNoEscape('datacenter', this.dataCenter);
 			
 			var response = r.execute();
 			var httpStatus = response.getStatusCode();
@@ -112,6 +131,7 @@ AbsoluteAPI.prototype = {
 			r.setStringParameterNoEscape('abtDateTime', abtDT);
 			r.setStringParameterNoEscape('abtAuthHeader', authH);
 			r.setStringParameterNoEscape('id', id);
+			r.setStringParameterNoEscape('datacenter', this.dataCenter);
 			
 			var response = r.execute();
 			var httpStatus = response.getStatusCode();
@@ -190,6 +210,7 @@ AbsoluteAPI.prototype = {
 			r.setStringParameterNoEscape('abtDateTime', abtDT);
 			r.setStringParameterNoEscape('abtAuthHeader', authH);
 			r.setStringParameterNoEscape('deviceUid', id);
+			r.setStringParameterNoEscape('datacenter', this.dataCenter);
 			
 			var response = r.execute();
 			var httpStatus = response.getStatusCode();
@@ -241,15 +262,15 @@ AbsoluteAPI.prototype = {
 	},
 	
 	//Generates the Complete Auth Header
-	_generateAuthHeader: function (apiToken, apiSecret, abtDT, method, uri, query, body){
+	_generateAuthHeader: function (apiToken, apiSecret, abtDT, method, uri, query, body){		
 		var abtDate = this._getDate();
 		var abtDateTime = abtDT;
-		var request = this._generateConconicalRequest(method, uri, query, "api.absolute.com", abtDateTime, body);
+		var request = this._generateConconicalRequest(method, uri, query, this.endpoint, abtDateTime, body);
 		var requestHash = CryptoJS.enc.Hex.stringify(CryptoJS.SHA256(request));
-		var stringToSign = "ABS1-HMAC-SHA-256" + "\n" + abtDateTime + "\n" + abtDate + "/cadc/abs1" + "\n" + requestHash;
+		var stringToSign = "ABS1-HMAC-SHA-256" + "\n" + abtDateTime + "\n" + abtDate + this.regionstring + "\n" + requestHash;
 		var signingKey = this._generateSigningKey(apiSecret, abtDate);
 		var signature = CryptoJS.HmacSHA256(stringToSign,signingKey).toString(CryptoJS.enc.Hex);
-		var header = "ABS1-HMAC-SHA-256 Credential=" + apiToken + "/" + abtDate + "/cadc/abs1, SignedHeaders=host;content-type;x-abs-date, Signature=" + signature;
+		var header = "ABS1-HMAC-SHA-256 Credential=" + apiToken + "/" + abtDate + this.regionstring + ", SignedHeaders=host;content-type;x-abs-date, Signature=" + signature;
 		
 		return header;
 	},
@@ -321,7 +342,7 @@ AbsoluteAPI.prototype = {
         <sys_created_on>2019-01-25 22:23:54</sys_created_on>
         <sys_customer_update>false</sys_customer_update>
         <sys_id>f62f8ca0db1be740cb8fd7764896197a</sys_id>
-        <sys_mod_count>2</sys_mod_count>
+        <sys_mod_count>7</sys_mod_count>
         <sys_name>AbsoluteAPI</sys_name>
         <sys_package display_value="Absolute ITSM Connector" source="x_absr_itsm">334c86f7dbc7a740cb8fd77648961963</sys_package>
         <sys_policy>read</sys_policy>
@@ -329,6 +350,6 @@ AbsoluteAPI.prototype = {
         <sys_scope display_value="Absolute ITSM Connector">334c86f7dbc7a740cb8fd77648961963</sys_scope>
         <sys_update_name>sys_script_include_f62f8ca0db1be740cb8fd7764896197a</sys_update_name>
         <sys_updated_by>matt.wood</sys_updated_by>
-        <sys_updated_on>2019-03-04 21:54:36</sys_updated_on>
+        <sys_updated_on>2019-11-15 21:23:12</sys_updated_on>
     </sys_script_include>
 </record_update>
